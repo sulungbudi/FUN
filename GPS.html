@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D GPS Relativistic Effects Simulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: #0a1a2f;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px;
+        }
+        .container {
+            background: #11253e;
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            border: 1px solid #2c4058;
+        }
+        h1 {
+            color: #b3e0ff;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-weight: 400;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+        .sub {
+            text-align: center;
+            color: #7f9fbb;
+            margin-bottom: 24px;
+            font-style: italic;
+            border-bottom: 1px solid #1f3a54;
+            padding-bottom: 12px;
+        }
+        .sim-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            justify-content: center;
+        }
+        .canvas-box {
+            background: #0a1620;
+            border-radius: 20px;
+            padding: 12px;
+            box-shadow: inset 0 0 10px #00000055;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 12px;
+            background: #030b12;
+            box-shadow: 0 0 0 2px #2e4b6e;
+            width: 600px;
+            height: 600px;
+        }
+        .controls {
+            background: #0e1f30;
+            border-radius: 20px;
+            padding: 20px;
+            min-width: 260px;
+            color: #c9ddec;
+            border: 1px solid #2f4d70;
+            box-shadow: 0 8px 18px #00000040;
+        }
+        .control-group {
+            margin-bottom: 25px;
+            border-bottom: 1px dashed #2a4058;
+            padding-bottom: 15px;
+        }
+        .control-group:last-child {
+            border-bottom: none;
+        }
+        h3 {
+            color: #8cb3d9;
+            margin: 0 0 15px 0;
+            font-weight: 300;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0 4px;
+        }
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            background: #1b344b;
+            height: 6px;
+            border-radius: 10px;
+            accent-color: #5fa7db;
+        }
+        .value-badge {
+            background: #1d3347;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-family: monospace;
+            font-size: 1rem;
+            border: 1px solid #35648b;
+            color: #c3e2ff;
+        }
+        .stat-box {
+            background: #0b1825;
+            border-radius: 18px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #3e7fb1;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        .stat-item .label {
+            color: #a0bedb;
+        }
+        .stat-item .number {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #ffe484;
+        }
+        .unit-note {
+            font-size: 0.8rem;
+            color: #6d8fad;
+            margin-top: 8px;
+            text-align: right;
+        }
+        button {
+            background: #2266aa;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 0 #0e2a40;
+            transition: 0.1s ease;
+            border: 1px solid #4794dd;
+        }
+        button:hover {
+            background: #2b7ac9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #0e2a40;
+        }
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #0e2a40;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        .legend-dot.sat { background: #ffaa33; box-shadow: 0 0 12px #ffbb55; }
+        .legend-dot.ref { background: #44ccff; box-shadow: 0 0 8px #44ccff; }
+        .legend-dot.path { background: none; border: 2px solid #77aadd; width: 12px; height: 12px; border-radius: 0; transform: rotate(45deg); }
+        footer {
+            text-align: center;
+            color: #3d5e7e;
+            margin-top: 16px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🛰️ 2D GPS relativity simulator</h1>
+    <div class="sub">special & general relativistic effects on satellite clock</div>
+
+    <div class="sim-panel">
+        <!-- canvas area -->
+        <div class="canvas-box">
+            <canvas id="gpsCanvas" width="600" height="600"></canvas>
+            <!-- legend inside canvas box -->
+            <div class="legend">
+                <div class="legend-item"><span class="legend-dot sat"></span> GPS satellite (clock)</div>
+                <div class="legend-item"><span class="legend-dot ref"></span> Ground reference</div>
+                <div class="legend-item"><span class="legend-dot path"></span> Orbit path</div>
+            </div>
+        </div>
+        <!-- right side controls & stats -->
+        <div class="controls">
+            <div class="control-group">
+                <h3>🌍 orbit parameters</h3>
+                <div class="slider-label">
+                    <span>altitude (km)</span>
+                    <span id="altVal" class="value-badge">20200</span>
+                </div>
+                <input type="range" id="altSlider" min="500" max="26000" value="20200" step="50">
+
+                <div class="slider-label">
+                    <span>eccentricity</span>
+                    <span id="eccVal" class="value-badge">0.02</span>
+                </div>
+                <input type="range" id="eccSlider" min="0" max="0.1" value="0.02" step="0.001">
+
+                <div style="margin-top: 16px;">
+                    <button id="resetParams">reset to GPS-like</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>⏱️ clock offset</h3>
+                <div class="stat-box">
+                    <div class="stat-item">
+                        <span class="label">special relativity (SR)</span>
+                        <span id="srValue" class="number">-7.2 µs/day</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">general relativity (GR)</span>
+                        <span id="grValue" class="number">+45.6 µs/day</span>
+                    </div>
+                    <div style="height:2px; background:#2d4c6e; margin:12px 0;"></div>
+                    <div class="stat-item">
+                        <span class="label">net constant drift</span>
+                        <span id="netConst" class="number">+38.4 µs/day</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">periodic variation (ecc)</span>
+                        <span id="periodicAmp" class="number">±12.3 ns</span>
+                    </div>
+                    <div style="height:2px; background:#2d4c6e; margin:12px 0;"></div>
+                    <div class="stat-item">
+                        <span class="label" style="color:#f2d97e;">total offset (accumulated)</span>
+                        <span id="totalOffset" class="number" style="color:#ffe066;">0.00 ns</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>⏵ simulation</h3>
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <button id="startBtn">▶ start</button>
+                    <button id="pauseBtn" style="background:#3f4f64;">⏸ pause</button>
+                </div>
+                <button id="resetBtn">↺ reset time & position</button>
+                <div style="margin-top:12px; text-align:center; color:#95bada;">
+                    <span>time: </span><span id="simTime" class="value-badge" style="font-size:1.2rem;">0.0 s</span>
+                </div>
+            </div>
+            <div class="unit-note">
+                ⚡ µs/day = 10⁻⁶ s per day &nbsp; | &nbsp; ns = 10⁻⁹ s
+            </div>
+        </div>
+    </div>
+    <footer>
+        ⏳ relativistic clock simulation: satellite (moving fast + high altitude) minus ground reference.
+        Net ~38 µs/day (satellite gains). Periodic term due to eccentricity.
+    </footer>
+</div>
+<script>
+(function() {
+    // ----- constants (SI units, but we'll handle gracefully) -----
+    const GM = 3.986004418e14;      // Earth gravitational constant m³/s²
+    const c = 299792458;             // speed of light m/s
+    const R_earth = 6371000;          // Earth mean radius (m)
+    const ground_velocity = 465;      // rotational speed at equator ~ m/s (for reference, but we keep ground fixed in ECEF? For simple 2D we use ground fixed but with gravitational potential diff)
+    // We'll compute potential difference properly: U_sat - U_ground = GM*(1/R_earth - 1/R_sat)
+
+    // for periodic term (eccentricity effect) amplitude in seconds:
+    // amplitude = 2 * sqrt(GM*a) * e / c²   (in seconds) but careful with units; we use formula Δtr = -2 sqrt(GM a) e sin(E)/c² -> max magnitude = 2 sqrt(GM a) e /c²
+    // additionally to show real scale we convert to ns.
+
+    // canvas & UI elements
+    const canvas = document.getElementById('gpsCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // sliders
+    const altSlider = document.getElementById('altSlider');
+    const eccSlider = document.getElementById('eccSlider');
+    const altVal = document.getElementById('altVal');
+    const eccVal = document.getElementById('eccVal');
+
+    // stat fields
+    const srValue = document.getElementById('srValue');
+    const grValue = document.getElementById('grValue');
+    const netConst = document.getElementById('netConst');
+    const periodicAmp = document.getElementById('periodicAmp');
+    const totalOffsetSpan = document.getElementById('totalOffset');
+    const simTimeSpan = document.getElementById('simTime');
+
+    // buttons
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const resetParams = document.getElementById('resetParams');
+
+    // simulation state
+    let animFrame = null;
+    let running = false;
+    let simTimeElapsed = 0;         // seconds (simulated time)
+    let lastTimestamp = null;
+    let orbitAngle = 0;              // radians (position of satellite)
+    const angularSpeedBase = 0.00014; // rad/s for typical GPS (will be adjusted slightly by altitude) -> but we keep constant for consistent period, we scale to roughly 12h orbit -> 2*PI/(12*3600)=1.45e-4 rad/s
+
+    // current parameters
+    let altitude = 20200000;          // meters (20200 km)
+    let eccentricity = 0.02;
+
+    // earth radius for drawing (pixels)
+    const earthRadiusPx = 70;
+    const canvasSize = 600;
+    const centerX = 300, centerY = 300;
+
+    // precompute some derived values
+    function getOrbitRadius(alt) {
+        return R_earth + alt;
+    }
+
+    // scale for drawing: map orbit radius to pixels (R_earth = earthRadiusPx)
+    function metersToPixels(radiusM) {
+        // R_earth in meters -> earthRadiusPx
+        return (radiusM / R_earth) * earthRadiusPx;
+    }
+
+    // update displayed numbers based on current altitude & ecc
+    function updateStats() {
+        const R_sat = R_earth + altitude;   // meters
+        const v_sat = Math.sqrt(GM / R_sat); // orbital velocity (circular approx) m/s
+
+        // SR fractional frequency shift: -v²/(2c²)  (for clock on satellite relative to ground, but ground moves? we use simple proper calculation: total offset = (ΔU/c² - v_sat²/(2c²)) - ( -v_ground²/(2c²)??) better to use combined formula for circular orbit:
+        // combined fractional shift = (GM/(c² * R_earth) - GM/(c² * R_sat)) - (v_sat²/(2c²)) + (v_ground²/(2c²))
+        // but ground speed negligible in potential? let's use net fractional = (GM/c²)*(1/R_earth - 1/R_sat) - (v_sat² - v_ground²)/(2c²)
+        // and v_ground ~465 m/s. For simplicity many texts give net ~4.45e-10 - but we'll compute accurate.
+        const v_ground = ground_velocity;
+        const GM_c2 = GM / (c*c); // ~4.438e-3 m? actually GM/c² = 0.004435 m? but we handle.
+
+        // gravitational potential term (GR): Δf/f_grav = (GM/c²)*(1/R_earth - 1/R_sat)
+        const gravShift = (GM / (c*c)) * (1/R_earth - 1/R_sat);   // dimensionless
+
+        // special relativity term (kinematic): Δf/f_kin = -(v_sat² - v_ground²) / (2c²)
+        const kinShift = -(v_sat*v_sat - v_ground*v_ground) / (2 * c*c); // dimensionless
+
+        const netFrac = gravShift + kinShift;  // total fractional frequency offset (satellite relative to ground)
+
+        // per-day offset (seconds per day)
+        const secPerDay = 86400;
+        const netPerDay = netFrac * secPerDay; // seconds per day
+        const gravPerDay = gravShift * secPerDay;
+        const kinPerDay = kinShift * secPerDay;
+
+        // format as µs/day
+        srValue.innerText = (kinPerDay * 1e6).toFixed(1) + ' µs/day';
+        grValue.innerText = (gravPerDay * 1e6).toFixed(1) + ' µs/day';
+        netConst.innerText = (netPerDay * 1e6).toFixed(1) + ' µs/day';
+
+        // periodic eccentricity amplitude (max absolute offset in seconds)
+        // formula: Δtr_max = 2 * sqrt(GM * a) * e / c²  where a = R_sat approx (semi-major axis)
+        const a = R_sat; // for circular approximation
+        const periodicMaxSec = 2 * Math.sqrt(GM * a) * eccentricity / (c*c);
+        const periodicMaxNs = periodicMaxSec * 1e9;
+        periodicAmp.innerText = '±' + periodicMaxNs.toFixed(2) + ' ns';
+
+        // update total offset based on simTimeElapsed and current angle (eccentric anomaly approximated by angle)
+        // For demonstration, we use current orbitAngle (true anomaly roughly) as sin(E) approx sin(angle). 
+        // Total offset = netFrac * t + periodic term * -sin(angle)   (since Δtr = -2 sqrt(GM a) e sin(E)/c² )
+        const periodicSec = - (2 * Math.sqrt(GM * a) * eccentricity / (c*c)) * Math.sin(orbitAngle);   // actual periodic offset at this moment
+        const constOffsetSec = netFrac * simTimeElapsed;
+        const totalSec = constOffsetSec + periodicSec;
+        totalOffsetSpan.innerText = (totalSec * 1e9).toFixed(2) + ' ns';
+
+        // update sim time display
+        simTimeSpan.innerText = simTimeElapsed.toFixed(1) + ' s';
+    }
+
+    // drawing function
+    function drawScene() {
+        ctx.clearRect(0, 0, 600, 600);
+        // draw Earth
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, earthRadiusPx, 0, 2*Math.PI);
+        ctx.fillStyle = '#1a4972';
+        ctx.fill();
+        ctx.strokeStyle = '#8ec4ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.font = '12px "Segoe UI", monospace';
+        ctx.fillStyle = '#cce5ff';
+        ctx.fillText('EARTH', centerX-30, centerY-30);
+
+        // draw orbit path (dashed)
+        const R_sat = R_earth + altitude;
+        const orbitPx = metersToPixels(R_sat);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, orbitPx, 0, 2*Math.PI);
+        ctx.strokeStyle = '#77aadd';
+        ctx.setLineDash([6, 6]);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]); // reset
+
+        // compute satellite position with eccentricity offset? For 2D, we can offset radius based on eccentricity:
+        // For visualization, we slightly modulate radius: r = R_sat * (1 - e*cos(angle)) approx.
+        const modR = R_sat * (1 - eccentricity * Math.cos(orbitAngle));  // elliptical variation
+        const satDistPx = metersToPixels(modR);
+        const satX = centerX + satDistPx * Math.cos(orbitAngle);
+        const satY = centerY + satDistPx * Math.sin(orbitAngle);
+
+        // draw satellite
+        ctx.shadowColor = '#ffbb55';
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.arc(satX, satY, 8, 0, 2*Math.PI);
+        ctx.fillStyle = '#ffaa33';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = '#fff2c0';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // draw ground reference station (on equator fixed)
+        ctx.shadowColor = '#44ccff';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(centerX + earthRadiusPx, centerY, 7, 0, 2*Math.PI);
+        ctx.fillStyle = '#44ccff';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // draw direction hint (small line)
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(centerX + 0.8*earthRadiusPx, centerY);
+        ctx.strokeStyle = '#5b8bb9';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // draw angle indicator (small)
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#bdd6f0';
+        ctx.fillText('θ = ' + (orbitAngle*180/Math.PI).toFixed(0)+'°', 20, 550);
+    }
+
+    // update loop
+    function updateSim(now) {
+        if (!running) return;
+
+        if (lastTimestamp !== null) {
+            const delta = Math.min(0.1, (now - lastTimestamp) / 1000); // max step 100ms to avoid jumps
+            // advance time and angle
+            const R_sat = R_earth + altitude;
+            const orbitalRate = Math.sqrt(GM / (R_sat*R_sat*R_sat)); // rad/s approx (mean motion)
+            orbitAngle += orbitalRate * delta * 2.5; // factor 2.5 to make animation speed visually pleasant (not real-time)
+            simTimeElapsed += delta * 3600 * 6; // accelerate time to see offset accumulate: each real second = 6 hours sim? we choose scale: 1 real sec = 21600 sec sim (6 hours). to show µs.
+            // Keep angle within 0-2pi
+            orbitAngle = orbitAngle % (2*Math.PI);
+        }
+        lastTimestamp = now;
+
+        // update stats & redraw
+        updateStats();
+        drawScene();
+
+        animFrame = requestAnimationFrame(updateSim);
+    }
+
+    // start/pause/reset
+    function startSim() {
+        if (!running) {
+            running = true;
+            lastTimestamp = performance.now();
+            if (animFrame) cancelAnimationFrame(animFrame);
+            animFrame = requestAnimationFrame(updateSim);
+        }
+    }
+
+    function pauseSim() {
+        running = false;
+        lastTimestamp = null;
+    }
+
+    function resetSim() {
+        pauseSim();
+        simTimeElapsed = 0;
+        orbitAngle = 0;
+        updateStats();
+        drawScene();
+    }
+
+    // slider listeners
+    function updateAlt() {
+        altitude = parseFloat(altSlider.value) * 1000; // km to m
+        altVal.innerText = altSlider.value;
+        updateStats();
+        drawScene();
+    }
+    function updateEcc() {
+        eccentricity = parseFloat(eccSlider.value);
+        eccVal.innerText = eccentricity.toFixed(3);
+        updateStats();
+        drawScene();
+    }
+
+    altSlider.addEventListener('input', updateAlt);
+    eccSlider.addEventListener('input', updateEcc);
+
+    // reset parameters to GPS-like (20200 km, ecc 0.02)
+    resetParams.addEventListener('click', () => {
+        altSlider.value = 20200;
+        eccSlider.value = 0.02;
+        updateAlt();
+        updateEcc();
+        resetSim(); // also resets time/angle
+    });
+
+    startBtn.addEventListener('click', startSim);
+    pauseBtn.addEventListener('click', pauseSim);
+    resetBtn.addEventListener('click', resetSim);
+
+    // initial update
+    updateAlt();
+    updateEcc();
+    drawScene();
+
+    // handle visibility
+    window.addEventListener('beforeunload', () => {
+        if (animFrame) cancelAnimationFrame(animFrame);
+    });
+})();
+</script>
+</body>
+</html>
