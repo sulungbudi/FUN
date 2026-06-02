@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Buku Interaktif: Eksperimen Michelson-Morley</title>
+    <!-- Google Fonts untuk nuansa klasik -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome untuk ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- jQuery dan Turn.js untuk efek flip buku -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/3/turn.min.js"></script>
+    <!-- Modernizr untuk deteksi fitur CSS 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* mencegah seleksi teks saat drag halaman */
+        }
+
+        body {
+            background: linear-gradient(145deg, #3e2c1f 0%, #2a1e12 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Source Sans Pro', sans-serif;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        /* Container buku utama */
+        .book-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        /* Wrapper untuk flipbook dengan bayangan */
+        .flipbook-wrapper {
+            box-shadow: 0 30px 40px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(255, 215, 150, 0.2);
+            border-radius: 12px;
+            background: #faf3e0;
+        }
+
+        #flipbook {
+            width: 900px;
+            height: 600px;
+            background: #faf3e0;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        /* Gaya setiap halaman */
+        .page {
+            background: #fffdf7;
+            padding: 30px 35px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #2c2418;
+            box-sizing: border-box;
+            font-family: 'Source Sans Pro', sans-serif;
+            border-radius: 8px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.02), 0 0 0 1px rgba(200,180,140,0.3);
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        /* Gaya untuk header halaman */
+        .page h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: #8b5a2b;
+            border-left: 5px solid #c49a6c;
+            padding-left: 15px;
+            margin-bottom: 20px;
+            margin-top: 5px;
+        }
+
+        .page h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            color: #a06e3c;
+            margin: 20px 0 10px 0;
+        }
+
+        .page h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #b87c4a;
+            margin: 10px 0;
+        }
+
+        .page p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .page .highlight {
+            background: #fbf5e8;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-style: italic;
+            border-left: 3px solid #c49a6c;
+        }
+
+        .page .figure {
+            background: #f3efe7;
+            border-radius: 16px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        canvas {
+            max-width: 100%;
+            background: #fefaf2;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Cover khusus */
+        .cover {
+            background: linear-gradient(135deg, #f7efda 0%, #eedfc9 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .cover h1 {
+            font-size: 38px;
+            border-left: none;
+            color: #5a3a22;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .cover .sub {
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #7c5a3c;
+            border-top: 1px solid #c9ae8a;
+            border-bottom: 1px solid #c9ae8a;
+            display: inline-block;
+            padding: 8px 20px;
+            margin: 15px 0;
+        }
+
+        .cover .ornamen {
+            font-size: 48px;
+            color: #b48b5a;
+            margin: 20px 0;
+        }
+
+        /* Nomor halaman */
+        .page-number {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 12px;
+            color: #b49b7a;
+            font-family: monospace;
+            border-top: 1px solid #e9e0d2;
+            padding-top: 12px;
+        }
+
+        /* Navigasi tombol */
+        .navigation {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            background: #e3d1b5;
+            border: none;
+            color: #4f351e;
+            font-size: 18px;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-family: 'Playfair Display', serif;
+            font-weight: bold;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            background: #c8aa7a;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        .page-indicator {
+            background: #2a1e12c9;
+            backdrop-filter: blur(4px);
+            padding: 5px 16px;
+            border-radius: 60px;
+            color: #ffefcf;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* scroll halus */
+        .page::-webkit-scrollbar {
+            width: 6px;
+        }
+        .page::-webkit-scrollbar-track {
+            background: #efe3d1;
+            border-radius: 8px;
+        }
+        .page::-webkit-scrollbar-thumb {
+            background: #bb9b73;
+            border-radius: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 960px) {
+            #flipbook {
+                width: 90vw;
+                height: 65vh;
+            }
+            .page {
+                padding: 20px;
+            }
+            .cover h1 {
+                font-size: 28px;
+            }
+        }
+
+        /* efek bayangan saat flip (dari turn.js) */
+        .hard {
+            background: #e7dac8;
+        }
+
+        footer {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 20px;
+            color: #ddcbb0;
+        }
+    </style>
+</head>
+<body>
+<div class="book-container">
+    <div class="flipbook-wrapper">
+        <div id="flipbook">
+            <!-- Halaman 1 : Cover -->
+            <div class="page cover">
+                <div class="ornamen"><i class="fas fa-atom"></i> <i class="fas fa-microscope"></i></div>
+                <h1>Eksperimen<br>Michelson-Morley</h1>
+                <div class="sub">Mengguncang Fondasi Fisika Klasik</div>
+                <p style="margin-top: 40px; font-size: 14px;">Sebuah Perjalanan Membongkar Mitos Eter<br>Menuju Relativitas Einstein</p>
+                <div style="margin-top: 50px;">
+                    <i class="fas fa-book-open" style="color:#b48b5a;"></i> <span style="font-size: 13px;">Buka halaman dengan sentuhan / tombol</span>
+                </div>
+                <div class="page-number">- SAMPUL -</div>
+            </div>
+            
+            <!-- Halaman 2 : Latar Belakang Eter (kiri spread) -->
+            <div class="page">
+                <h1>🌌 Konsep Eter</h1>
+                <p>Pada akhir abad ke-19, para fisikawan meyakini bahwa cahaya, seperti gelombang, memerlukan medium perambatan. Medium hipotetis ini disebut <strong>eter (luminiferous aether)</strong>. Diyakini eter memenuhi seluruh ruang kosong, bersifat diam dan absolut, menjadi kerangka acuan universal alam semesta.</p>
+                <h2>Mengapa Eter Diperlukan?</h2>
+                <p>Teori gelombang cahaya (seperti gelombang air atau suara) membutuhkan medium. Bumi bergerak mengelilingi Matahari dengan kecepatan ~30 km/s, sehingga seharusnya ada “angin eter” yang dapat dideteksi. Jika eter ada, kecepatan cahaya akan berbeda tergantung arah gerak relatif Bumi terhadap eter.</p>
+                <div class="highlight">
+                    <i class="fas fa-quote-left"></i> “Eter adalah salah satu gagasan paling mendasar dalam fisika pra-relativitas, namun tak pernah teramati secara langsung.”
+                </div>
+                <div class="page-number">Halaman 2</div>
+            </div>
+            
+            <!-- Halaman 3 : Michelson & Morley Merancang Percobaan -->
+            <div class="page">
+                <h1>⚙️ Sang Perancang</h1>
+                <p><strong>Albert A. Michelson</strong> (fisikawan Amerika) dan <strong>Edward W. Morley</strong> merancang sebuah instrumen canggih: <strong>Interferometer Michelson</strong>. Tujuannya mendeteksi variasi kecepatan cahaya akibat pergerakan Bumi di dalam eter.</p>
+                <h2>Prinsip Dasar</h2>
+                <p>Interferometer membagi seberkas cahaya menjadi dua sinar yang tegak lurus. Kedua sinar dipantulkan oleh cermin dan digabungkan kembali, menghasilkan pola interferensi (pinggiran terang-gelap). Pergeseran pola interferensi akan terjadi jika kecepatan cahaya berbeda di kedua lengan, akibat angin eter.</p>
+                <div class="figure">
+                    <i class="fas fa-lightbulb"></i> Sensitivitas alat sangat tinggi: dapat mendeteksi pergeseran sekecil 0.01 panjang gelombang!
+                </div>
+                <div class="page-number">Halaman 3</div>
+            </div>
+            
+            <!-- Halaman 4 : Interferometer & Harapan -->
+            <div class="page">
+                <h1>🔬 Interferometer Michelson</h1>
+                <p>Alat ini memiliki lengan optik sepanjang ~11 meter. Michelson dan Morley menggunakan batu besar yang mengapung di raksa untuk meminimalkan getaran. Sinar dari sumber dibagi oleh <strong>beam splitter</strong> 45°, menuju dua cermin (M1 dan M2). Setelah dipantulkan, sinar kembali ke beam splitter menuju detektor.</p>
+                <p>Harapan awal: memutar alat 90° akan menyebabkan pergeseran pola interferensi akibat perubahan arah relatif terhadap “angin eter”. Pergeseran yang diharapkan ~0,4 pinggiran (visible shift).</p>
+                <div class="highlight">
+                    📐 Persamaan dasar waktu tempuh: t₁ - t₂ ∝ v²/c². Efek sekunder orde (v/c)².
+                </div>
+                <div class="page-number">Halaman 4</div>
+            </div>
+            
+            <!-- Halaman 5 : Diagram Interferometer (canvas) dan Prosedur -->
+            <div class="page">
+                <h1>📡 Skema Interferometer</h1>
+                <div class="figure">
+                    <canvas id="interferometerCanvas" width="400" height="220" style="width:100%; height:auto; max-width:400px; margin:0 auto; display:block;"></canvas>
+                    <p style="font-size: 13px; margin-top: 10px;"><i>Diagram konseptual: sumber cahaya (S), beam splitter (BS), cermin M₁ & M₂, detektor (D).</i></p>
+                </div>
+                <h2>Prosedur Eksperimen</h2>
+                <p>Percobaan dilakukan di Cleveland (1887) dengan rotasi instrumen secara kontinyu siang dan malam, serta berbagai musim. Jika eter benar-benar ada, pola interferensi akan bergeser secara periodik. Hasilnya? Tidak ada pergeseran berarti di luar batas kesalahan alat!</p>
+                <div class="page-number">Halaman 5</div>
+            </div>
+            
+            <!-- Halaman 6 : Hasil Null yang Mengejutkan -->
+            <div class="page">
+                <h1>❓ Hasil Nol (Null Result)</h1>
+                <p>Eksperimen Michelson-Morley dengan sangat teliti menunjukkan <strong>tidak ada pergeseran pola interferensi</strong> yang signifikan. Kecepatan cahaya tampak konstan dalam kerangka manapun, bertentangan dengan ekspektasi keberadaan eter statis.</p>
+                <p>Fisikawan pada masa itu terkejut. Berbagai hipotesis ad hoc muncul: hipotesis “drag eter” (H. Lorentz & Fitzgerald) mengusulkan kontraksi panjang untuk mempertahankan eter. Namun, ini terasa terlalu dibuat-buat.</p>
+                <div class="highlight">
+                    <i class="fas fa-chart-line"></i> Hasil eksperimen: <strong>pergeseran < 0,01 pinggiran</strong>, sementara yang diharapkan ~0,4 pinggiran. Perbedaan >40 kali sensitivitas!
+                </div>
+                <div class="page-number">Halaman 6</div>
+            </div>
+            
+            <!-- Halaman 7 : Interpretasi Awal dan Kontraksi Lorentz -->
+            <div class="page">
+                <h1>🧩 Kontraksi Lorentz-FitzGerald</h1>
+                <p>George FitzGerald dan Hendrik Lorentz mengusulkan bahwa benda bergerak memendek dalam arah geraknya relatif terhadap eter — kontraksi panjang — yang secara tepat membatalkan pergeseran yang diharapkan. Postulat ini menyelamatkan eter secara matematis, namun tidak memiliki dasar mekanis.</p>
+                <p>Meski demikian, eksperimen berulang dengan berbagai variasi (seperti eksperimen Kennedy–Thorndike) terus mengonfirmasi hasil null. Fisika klasik berada di ujung tanduk.</p>
+                <div class="figure">
+                    📖 <strong>Penolakan Paradigma:</strong> Eksperimen Michelson-Morley adalah salah satu “awan kecil” di langit fisika abad 19 (Kelvin, 1900) yang justru menjadi revolusi.
+                </div>
+                <div class="page-number">Halaman 7</div>
+            </div>
+            
+            <!-- Halaman 8 : Dampak pada Relativitas Einstein -->
+            <div class="page">
+                <h1>✨ Solusi Brilian Einstein</h1>
+                <p>Tahun 1905, Albert Einstein menerbitkan teori relativitas khusus tanpa bergantung pada eter. Dua postulatnya:</p>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li>Hukum fisika sama di semua kerangka inersial.</li>
+                    <li>Kecepatan cahaya dalam vakum selalu konstan (c) terlepas dari gerak sumber atau pengamat.</li>
+                </ul>
+                <p>Dengan ini, hasil null Michelson-Morley menjadi konsekuensi alami, bukan keanehan. Eter tidak diperlukan, ruang-waktu bersifat relatif. Eksperimen ini menjadi salah satu bukti observasi terkuat bagi relativitas.</p>
+                <div class="highlight">
+                    🌟 Einstein menyebut eksperimen Michelson-Morley sebagai “pemberi inspirasi” bagi relativitas, meskipun ia juga mengaku dipengaruhi oleh banyak faktor.
+                </div>
+                <div class="page-number">Halaman 8</div>
+            </div>
+            
+            <!-- Halaman 9 : Warisan dan Implikasi Modern -->
+            <div class="page">
+                <h1>🏆 Warisan Abadi</h1>
+                <p>Eksperimen Michelson-Morley mengubah arah fisika selamanya. Michelson menerima Hadiah Nobel Fisika 1907 (orang Amerika pertama). Alat interferometer kini digunakan dalam detektor gelombang gravitasi LIGO, pengukuran presisi, dan metrologi.</p>
+                <p>Lebih jauh, eksperimen ini mengajarkan bahwa kegagalan (null result) bisa menjadi penemuan paling penting. Dengan menghapus eter, relativitas membuka pintu menuju fisika modern: energi nuklir, kosmologi, GPS yang mengoreksi efek relativistik.</p>
+                <div class="figure">
+                    <i class="fas fa-globe"></i> GPS satelit harus memperhitungkan dilatasi waktu dan kontraksi panjang—bukti langsung relativitas sehari-hari!
+                </div>
+                <div class="page-number">Halaman 9</div>
+            </div>
+            
+            <!-- Halaman 10 : Penutup / Kesimpulan -->
+            <div class="page">
+                <h1>📖 Kesimpulan</h1>
+                <p>Eksperimen Michelson-Morley pada 1887 secara brilian menunjukkan bahwa kecepatan cahaya bersifat konstan, tidak dipengaruhi gerak Bumi. Hasil null ini menumbangkan hipotesis eter, memaksa fisikawan merumuskan ulang pemahaman tentang ruang, waktu, dan gerak.</p>
+                <p>Kini, eksperimen tersebut dikenang sebagai salah satu percobaan terpenting dalam sejarah sains, mengantar era relativitas dan fisika kuantum. Buku digital ini mengajak Anda menyelami semangat keingintahuan, ketekunan, dan keberanian ilmiah Michelson & Morley.</p>
+                <div class="highlight">
+                    “Kegagalan yang terencana dengan baik dapat mengungkap kebenaran yang lebih dalam.” — adaptasi dari hasil null.
+                </div>
+                <p style="text-align: center; margin-top: 30px;"><i class="fas fa-dove"></i> Terima kasih telah membaca.</p>
+                <div class="page-number">Halaman 10 | Penutup</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="navigation">
+        <button class="nav-btn" id="prevBtn"><i class="fas fa-chevron-left"></i> Halaman Sebelumnya</button>
+        <span class="page-indicator" id="pageIndicator">Halaman 1 / 10</span>
+        <button class="nav-btn" id="nextBtn">Halaman Selanjutnya <i class="fas fa-chevron-right"></i></button>
+    </div>
+    <footer>✦ Geser sudut halaman atau gunakan tombol untuk membalik ✦</footer>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // inisialisasi flipbook dengan opsi efek 3D
+        $('#flipbook').turn({
+            width: 900,
+            height: 600,
+            autoCenter: true,
+            elevation: 50,
+            gradients: true,
+            acceleration: true,
+            duration: 700,          // durasi animasi membalik
+            when: {
+                turned: function(e, page) {
+                    // update indikator halaman saat halaman berubah
+                    var totalPages = $('#flipbook').turn('pages');
+                    $('#pageIndicator').text('Halaman ' + page + ' / ' + totalPages);
+                    
+                    // Memicu redraw canvas jika halaman 5 (diagram) ditampilkan
+                    if (page === 5 || page === 5) { 
+                        drawDiagram(); 
+                    }
+                    // juga bisa untuk halaman 5 saat setiap kali halaman 5 muncul
+                    // tetapi kita panggil drawDiagram di awal juga
+                },
+                start: function(e, page, view) {
+                    // opsional: memastikan diagram digambar saat flip ke halaman 5
+                    if (view && view.length && (view[0] === 5 || view[1] === 5)) {
+                        setTimeout(drawDiagram, 50);
+                    }
+                }
+            }
+        });
+        
+        // tombol prev & next
+        $('#prevBtn').on('click', function(e) {
+            e.preventDefault();
+            $('#flipbook').turn('previous');
+        });
+        
+        $('#nextBtn').on('click', function(e) {
+            e.preventDefault();
+            $('#flipbook').turn('next');
+        });
+        
+        // juga dukungan keyboard panah kiri/kanan
+        $(document).keydown(function(e) {
+            if (e.key === 'ArrowLeft') {
+                $('#flipbook').turn('previous');
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight') {
+                $('#flipbook').turn('next');
+                e.preventDefault();
+            }
+        });
+        
+        // Inisialisasi indikator halaman saat pertama kali
+        var total = $('#flipbook').turn('pages');
+        var current = $('#flipbook').turn('page');
+        $('#pageIndicator').text('Halaman ' + current + ' / ' + total);
+        
+        // Menggambar diagram interferometer di canvas (halaman 5)
+        function drawDiagram() {
+            var canvas = document.getElementById('interferometerCanvas');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            // Set dimensi canvas sesuai rasio asli
+            canvas.width = 400;
+            canvas.height = 220;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#fefaf2";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // gambar elemen sederhana interferometer
+            ctx.strokeStyle = "#6b4c2c";
+            ctx.lineWidth = 1.5;
+            ctx.fillStyle = "#ab8e66";
+            
+            // Sumber cahaya (L)
+            ctx.beginPath();
+            ctx.arc(50, 110, 10, 0, 2*Math.PI);
+            ctx.fillStyle = "#e3b87c";
+            ctx.fill();
+            ctx.fillStyle = "#8b5a2b";
+            ctx.font = "bold 12px 'Segoe UI'";
+            ctx.fillText("Sumber", 42, 130);
+            
+            // Beam splitter (BS) kotak diagonal
+            ctx.fillStyle = "#c9ae8a";
+            ctx.fillRect(150, 102, 30, 16);
+            ctx.fillStyle = "#5c3f24";
+            ctx.fillText("BS", 160, 115);
+            
+            // Cermin M1 (atas)
+            ctx.beginPath();
+            ctx.moveTo(270, 45);
+            ctx.lineTo(290, 45);
+            ctx.lineTo(290, 55);
+            ctx.lineTo(270, 55);
+            ctx.fillStyle = "#ad8b63";
+            ctx.fill();
+            ctx.fillStyle = "#4b351e";
+            ctx.fillText("M₁", 278, 58);
+            
+            // Cermin M2 (kanan)
+            ctx.fillRect(330, 130, 12, 40);
+            ctx.fillStyle = "#ad8b63";
+            ctx.fillRect(328, 128, 14, 44);
+            ctx.fillStyle = "#4b351e";
+            ctx.fillText("M₂", 334, 158);
+            
+            // Detektor D
+            ctx.fillStyle = "#8f7352";
+            ctx.fillRect(230, 172, 28, 14);
+            ctx.fillStyle = "#f9e5c1";
+            ctx.fillRect(232, 174, 24, 10);
+            ctx.fillStyle = "#3a2a1a";
+            ctx.fillText("D", 240, 185);
+            
+            // garis sinar (jalur optik)
+            ctx.beginPath();
+            ctx.moveTo(60, 110);
+            ctx.lineTo(150, 110);
+            ctx.lineTo(150, 85);
+            ctx.lineTo(280, 50);
+            ctx.strokeStyle = "#d9572e";
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(150, 110);
+            ctx.lineTo(150, 140);
+            ctx.lineTo(342, 150);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(150, 85);
+            ctx.lineTo(150, 110);
+            ctx.lineTo(230, 110);
+            ctx.lineTo(230, 175);
+            ctx.strokeStyle = "#b04520";
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(342, 150);
+            ctx.lineTo(240, 150);
+            ctx.lineTo(230, 175);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            ctx.strokeStyle = "#7a562e";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(120, 110);
+            ctx.lineTo(140, 110);
+            ctx.stroke();
+            
+            // Label tambahan
+            ctx.fillStyle = "#6a4c2a";
+            ctx.font = "italic 10px 'Source Sans Pro'";
+            ctx.fillText("Cahaya terpecah", 110, 70);
+            ctx.fillText("→ ke M₁", 230, 40);
+            ctx.fillText("→ ke M₂", 280, 180);
+        }
+        
+        // Panggil diagram saat halaman 5 sudah termuat (turn selesai dan pertama kali)
+        setTimeout(function() {
+            var currPage = $('#flipbook').turn('page');
+            if (currPage === 5) {
+                drawDiagram();
+            } else {
+                // cek jika page spread mengandung 5
+                var view = $('#flipbook').turn('view');
+                if (view && (view[0] === 5 || view[1] === 5)) drawDiagram();
+            }
+        }, 300);
+        
+        // event binding untuk memastikan diagram digambar jika ukuran halaman berubah atau resize? tidak diperlukan.
+        // tambahan: jika halaman berubah melalui turn, menggambar ulang jika halaman 5 aktif
+        $('#flipbook').on('turned', function(e, page) {
+            if (page === 5) {
+                drawDiagram();
+            } else {
+                var view = $('#flipbook').turn('view');
+                if (view && (view[0] === 5 || view[1] === 5)) drawDiagram();
+            }
+        });
+        
+        // Untuk halaman 5 saat load via tombol next / prev, panggil gambar
+        // handle juga jika dimensi canvas berubah relatif, fungsi drawDiagram menggunakan ukuran tetap
+        // resize minor tidak masalah
+    });
+    
+    // sedikit fallback jika canvas belum sempat di-load
+    window.addEventListener('load', function() {
+        if (document.getElementById('interferometerCanvas')) {
+            var ctx = document.getElementById('interferometerCanvas').getContext('2d');
+            if (ctx) {
+                // gambar awal
+                setTimeout(function() {
+                    var ev = document.createEvent('Event');
+                    ev.initEvent('turned', true, true);
+                    document.getElementById('flipbook').dispatchEvent(ev);
+                }, 100);
+            }
+        }
+    });
+</script>
+</body>
+</html>
